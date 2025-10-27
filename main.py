@@ -558,6 +558,91 @@ def aplicar_pca(feature_set, n_components=0.95, vector_type='accel'):
     print(f"{'=' * 80}\n")
 
     return X_pca, pca
+# 4.5 - Fisher Score e ReliefF implementados do zero
+def fisher_score(X, y):
+    """
+    Calcula o Fisher Score para cada feature.
+    X : ndarray (amostras x features)
+    y : ndarray (labels)
+    """
+    classes = np.unique(y)
+    n_features = X.shape[1]
+    scores = np.zeros(n_features)
+
+    for j in range(n_features):
+        feature = X[:, j]
+        overall_mean = np.mean(feature)
+        num, den = 0, 0
+        for c in classes:
+            mask = y == c
+            class_data = feature[mask]
+            if len(class_data) > 1:
+                class_mean = np.mean(class_data)
+                class_var = np.var(class_data)
+                num += len(class_data) * (class_mean - overall_mean) ** 2
+                den += len(class_data) * class_var
+        scores[j] = num / den if den > 0 else 0
+
+    return scores
+
+
+def reliefF(X, y, n_neighbors=10):
+    """
+    Implementação simplificada do algoritmo ReliefF.
+    Usa distância euclidiana entre amostras.
+    """
+    from sklearn.neighbors import NearestNeighbors
+
+    n_samples, n_features = X.shape
+    scores = np.zeros(n_features)
+    nn = NearestNeighbors(n_neighbors=n_neighbors + 1)
+    nn.fit(X)
+    neighbors = nn.kneighbors(X, return_distance=False)
+
+    for i in range(n_samples):
+        label = y[i]
+        hits = X[neighbors[i][1:]][y[neighbors[i][1:]] == label]
+        misses = X[neighbors[i][1:]][y[neighbors[i][1:]] != label]
+
+        if len(hits) > 0:
+            diff_hit = np.abs(X[i] - np.mean(hits, axis=0))
+        else:
+            diff_hit = np.zeros(n_features)
+
+        if len(misses) > 0:
+            diff_miss = np.abs(X[i] - np.mean(misses, axis=0))
+        else:
+            diff_miss = np.zeros(n_features)
+
+        scores += diff_miss - diff_hit
+
+    scores = np.maximum(scores, 0)
+    return scores
+
+
+def selecionar_melhores_features(X, y, metodo='fisher', top_n=10):
+    """
+    4.6 - Identifica as melhores features segundo Fisher Score ou ReliefF.
+    """
+    if metodo.lower() == 'fisher':
+        scores = fisher_score(X, y)
+        nome_metodo = "Fisher Score"
+    elif metodo.lower() == 'relieff':
+        scores = reliefF(X, y)
+        nome_metodo = "ReliefF"
+    else:
+        raise ValueError("Método deve ser 'fisher' ou 'relieff'.")
+
+    top_idx = np.argsort(scores)[::-1][:top_n]
+
+    print(f"\n{'=' * 80}")
+    print(f"4.6 - Top {top_n} Features segundo {nome_metodo}")
+    print(f"{'-' * 80}")
+    for rank, idx in enumerate(top_idx, 1):
+        print(f"{rank:2d}. Feature {idx:3d}  |  Score = {scores[idx]:.5f}")
+    print(f"{'=' * 80}\n")
+
+    return top_idx, scores
 
 # Exemplo de uso
 if __name__ == "__main__":
@@ -621,3 +706,8 @@ if __name__ == "__main__":
     X_accel_pca, pca_accel = aplicar_pca(X_accel, n_components=0.95, vector_type='accel')
     X_gyro_pca, pca_gyro = aplicar_pca(X_gyro, n_components=0.95, vector_type='gyro')
     X_mag_pca, pca_mag = aplicar_pca(X_mag, n_components=0.95, vector_type='mag')
+
+    # 4.5–4.6 - Seleção de features
+    print("\n=== 4.5–4.6 - Seleção de Features ===")
+    top_fisher, scores_fisher = selecionar_melhores_features(X_accel, y_accel, metodo='fisher', top_n=10)
+    top_relief, scores_relief = selecionar_melhores_features(X_accel, y_accel, metodo='relieff', top_n=10)
