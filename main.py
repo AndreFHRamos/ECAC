@@ -124,7 +124,7 @@ def calcular_densidade_outliers(data_array, vector_type='accel', k=3):
 
     return densidades
 """
-def calcular_densidade_outliers(data_array, vector_type='accel', metodo='IQR', k=3):
+def calcular_densidade_outliers(data_array, vector_type='accel', k=3):
 
     if vector_type == 'accel':
         start_col = 1
@@ -148,24 +148,20 @@ def calcular_densidade_outliers(data_array, vector_type='accel', metodo='IQR', k
         mask = activities == activity
         dados_atividade = magnitude[mask]
 
-        if metodo.upper() == 'IQR':
-            # --- Método IQR (Tukey) ---
-            Q1 = np.percentile(dados_atividade, 25)
-            Q3 = np.percentile(dados_atividade, 75)
-            IQR = Q3 - Q1
-            lower_bound = Q1 - 1.5 * IQR
-            upper_bound = Q3 + 1.5 * IQR
-            outliers = dados_atividade[(dados_atividade < lower_bound) | (dados_atividade > upper_bound)]
-
-        else:
-            raise ValueError("Método inválido. Use 'IQR' ou 'Z'.")
+        # --- Método IQR (Tukey) ---
+        Q1 = np.percentile(dados_atividade, 25)
+        Q3 = np.percentile(dados_atividade, 75)
+        IQR = Q3 - Q1
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+        outliers = dados_atividade[(dados_atividade < lower_bound) | (dados_atividade > upper_bound)]
 
         no = len(outliers)
         nr = len(dados_atividade)
         densidade = (no / nr) * 100 if nr > 0 else 0
         densidades[int(activity)] = densidade
 
-    print(f"\nDensidades de outliers ({vector_type}, método {metodo}):")
+    print(f"\nDensidades de outliers ({vector_type},):")
     for a, d in densidades.items():
         print(f"  Atividade {a}: {d:.2f}%")
 
