@@ -246,7 +246,7 @@ def plot_outliers_zscore(data_array, vector_type='accel', k_values=[3, 3.5, 4]):
         plt.show(block=False)
 
 #-------------------------------------------
-#K-means
+#3.6 K-means
 #-------------------------------------------
 
 def k_means(data, n_clusters, max_iters=100, tol=1e-3, random_state=None):
@@ -279,7 +279,43 @@ def k_means(data, n_clusters, max_iters=100, tol=1e-3, random_state=None):
 
     return labels, centroids
 
-def detectar_outliers_kmeans(data_array, vector_type='accel', n_clusters=3):
+def elbow_method(data_array, vector_type='accel', max_k=10):
+    """
+    Implementa o teste do cotovelo para determinar o melhor número de clusters.
+    Calcula o WCSS (soma das distâncias quadradas dentro dos clusters).
+    """
+    if vector_type == 'accel':
+        start_col = 1
+    elif vector_type == 'gyro':
+        start_col = 4
+    elif vector_type == 'mag':
+        start_col = 7
+    else:
+        raise ValueError("vector_type deve ser 'accel', 'gyro' ou 'mag'")
+
+    data_3d = data_array[:, start_col:start_col + 3]
+    wcss = []
+
+    for k in range(1, max_k + 1):
+        labels, centroids = k_means(data_3d, k, random_state=42)
+        distances = np.linalg.norm(data_3d - centroids[labels], axis=1)
+        wcss.append(np.sum(distances ** 2))
+
+    plt.figure(figsize=(8, 5))
+    plt.plot(range(1, max_k + 1), wcss, 'bo-', markersize=6)
+    plt.xlabel('Número de Clusters (k)')
+    plt.ylabel('WCSS (Within-Cluster Sum of Squares)')
+    plt.title(f'Teste do Cotovelo - {vector_type}')
+    plt.grid(True, alpha=0.4)
+    plt.show(block=False)
+
+    return wcss
+
+
+#------------------------------------
+#3.7
+#-----------------------------------
+def detectar_outliers_kmeans(data_array, vector_type='accel', n_clusters=4):
     """
     3.7 - Determina outliers usando K-means.
     Pontos em clusters muito pequenos são considerados outliers.
@@ -673,7 +709,7 @@ def run_option(func, *args, **kwargs):
 def main():
     participant_id = int(input("Introduz o ID do participante (1–15): "))
     data = load_participant_data(participant_id)
-    print(f"✅ Dados carregados: {data.shape}")
+    print(f" Dados carregados: {data.shape}")
 
     # Variáveis globais de features e PCA (para as opções 7–9)
     X_accel = X_gyro = X_mag = y_accel = y_gyro = y_mag = None
@@ -690,8 +726,9 @@ def main():
         print("8  - 4.2 Extração de features")
         print("9  - 4.3 Aplicar PCA")
         print("10  - 4.5–4.6 Seleção de features")
-        print("11 - 🔁 Executar tudo (3.1 a 4.6)")
-        print("0  - ❌ Sair")
+        print("11 - Executar tudo (3.1 a 4.6)")
+        print("12 - regra do cotovelo")
+        print("0  - Sair")
 
         opcao = input("\nEscolhe uma opção: ")
 
@@ -713,7 +750,7 @@ def main():
         # === 3.6 ===
         elif opcao == "4":
             for v in ['accel', 'gyro', 'mag']:
-                print(f"\n⚙️  A executar K-means para {v}...")
+                print(f"\n  A executar K-means para {v}...")
                 data_3d = data[:, {'accel': 1, 'gyro': 4, 'mag': 7}[v]:{'accel': 1, 'gyro': 4, 'mag': 7}[v] + 3]
                 for n_clusters in [2, 3, 4, 5, 6, 7, 8]:
                     _, centroids = k_means(data_3d, n_clusters, random_state=42)
@@ -741,9 +778,9 @@ def main():
             X_accel, y_accel = extract_feature_set(data, vector_type='accel')
             X_gyro, y_gyro = extract_feature_set(data, vector_type='gyro')
             X_mag, y_mag = extract_feature_set(data, vector_type='mag')
-            print(f"✅ Features aceleração: {X_accel.shape}")
-            print(f"✅ Features giroscópio: {X_gyro.shape}")
-            print(f"✅ Features magnetómetro: {X_mag.shape}")
+            print(f" Features aceleração: {X_accel.shape}")
+            print(f" Features giroscópio: {X_gyro.shape}")
+            print(f" Features magnetómetro: {X_mag.shape}")
 
         # === 4.3 ===
         elif opcao == "9":
@@ -796,6 +833,11 @@ def main():
             run_option(selecionar_melhores_features, X_accel, y_accel, metodo='fisher', top_n=10)
             run_option(selecionar_melhores_features, X_accel, y_accel, metodo='relieff', top_n=10)
             print(" Execução completa!")
+
+        elif opcao == "12":
+            for v in ['accel', 'gyro', 'mag']:
+                run_option(elbow_method, data, vector_type=v, max_k=10)
+
 
         elif opcao == "0":
             print("\n A terminar o programa...")
