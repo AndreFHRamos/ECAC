@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import kstest, f_oneway, kruskal
 from scipy.signal import welch
 from sklearn.decomposition import PCA
-
+#preparação dos dados
 def load_participant_data(participant_id,
                           data_folder=r'C:\Users\squar\PycharmProjects\ECACprodject1\FORTH_TRACE_DATASET-master'):
     participant_folder = os.path.join(data_folder, f'part{participant_id}')
@@ -32,6 +32,7 @@ def load_participant_data(participant_id,
     data_array = np.array(all_data)
     return data_array
 
+#exercicio 3.1
 def calculate_vector_magnitude(data_array, start_col):
     x = data_array[:, start_col]
     y = data_array[:, start_col + 1]
@@ -124,6 +125,10 @@ def calcular_densidade_outliers(data_array, vector_type='accel', k=3):
 
     return densidades
 """
+#-----------------------------------------------------------------
+#exercicio 3.2
+#-----------------------------------------------------------------
+
 def calcular_densidade_outliers(data_array, vector_type='accel', k=3):
 
     if vector_type == 'accel':
@@ -168,6 +173,9 @@ def calcular_densidade_outliers(data_array, vector_type='accel', k=3):
     return densidades
 
 
+#------------------------------------------------------------------------------------
+#exercicio 3.3
+#------------------------------------------------------------------------------------
 def detectar_outliers_zscore(dados, k=3):
     # Converter para array NumPy
     dados = np.array(dados)
@@ -188,6 +196,9 @@ def detectar_outliers_zscore(dados, k=3):
 
     return dados[mask_outliers], np.where(mask_outliers)[0]
 
+#----------------------------------------------------------------
+#3.4
+#----------------------------------------------------------------
 def plot_outliers_zscore(data_array, vector_type='accel', k_values=[3, 3.5, 4]):
     # Definir coluna inicial baseada no tipo de vetor
     if vector_type == 'accel':
