@@ -32,7 +32,9 @@ def load_participant_data(participant_id,
     data_array = np.array(all_data)
     return data_array
 
+#---------------------------------------------
 #exercicio 3.1
+#---------------------------------------------
 def calculate_vector_magnitude(data_array, start_col):
     x = data_array[:, start_col]
     y = data_array[:, start_col + 1]
@@ -243,11 +245,11 @@ def plot_outliers_zscore(data_array, vector_type='accel', k_values=[3, 3.5, 4]):
         plt.tight_layout()
         plt.show(block=False)
 
+#-------------------------------------------
+#K-means
+#-------------------------------------------
+
 def k_means(data, n_clusters, max_iters=100, tol=1e-3, random_state=None):
-    """
-    K-means otimizado - usa operações vectorizadas do NumPy ao invés de loops.
-    Muito mais rápido que a versão anterior.
-    """
     if random_state is not None:
         np.random.seed(random_state)
 
@@ -655,70 +657,151 @@ def selecionar_melhores_features(X, y, metodo='fisher', top_n=10):
 
     return top_idx, scores
 
-# Exemplo de uso
-if __name__ == "__main__":
-    participant_id = 1
+import matplotlib.pyplot as plt
+import gc
+from main import *
+
+def run_option(func, *args, **kwargs):
+    """Executa cada tarefa de forma isolada, como na main original."""
+    plt.close('all')      # fecha gráficos antigos
+    gc.collect()          # limpa memória antiga
+    func(*args, **kwargs) # executa a função
+    plt.show()            # mostra e bloqueia até o utilizador fechar
+    plt.close('all')      # fecha o gráfico antes de voltar ao menu
+    gc.collect()          # limpa novamente
+
+def main():
+    participant_id = int(input("Introduz o ID do participante (1–15): "))
     data = load_participant_data(participant_id)
-    print(f"Dados carregados: {data.shape}")
+    print(f"✅ Dados carregados: {data.shape}")
 
-    # 3.1 - Boxplots das variáveis transformadas
-    print("\nA gerar boxplots...")
-    plot_boxplot_by_activity(data, vector_type='accel')
-    plot_boxplot_by_activity(data, vector_type='gyro')
-    plot_boxplot_by_activity(data, vector_type='mag')
+    # Variáveis globais de features e PCA (para as opções 7–9)
+    X_accel = X_gyro = X_mag = y_accel = y_gyro = y_mag = None
 
-    # 3.2 - Densidade de outliers (pulso direito)
-    densidade_accel = calcular_densidade_outliers(
-        data, vector_type='accel', k=3)
-    densidade_gyro = calcular_densidade_outliers(
-        data, vector_type='gyro', k=3)
-    densidade_mag = calcular_densidade_outliers(
-        data, vector_type='mag', k=3)
+    while True:
+        print("\n=== MENU PRINCIPAL ===")
+        print("1  - 3.1 Boxplots das variáveis transformadas")
+        print("2  - 3.2 Densidade de outliers (IQR, pulso direito)")
+        print("3  - 3.4 Deteção e plot de outliers (Z-score)")
+        print("4  - 3.6 Execução do algoritmo K-means (sem plot)")
+        print("5  - 3.7 Outliers com K-means")
+        print("6  - Comparar K-means vs Z-score")
+        print("7  - 4.1 Teste de significância estatística")
+        print("8  - 4.2 Extração de features")
+        print("9  - 4.3 Aplicar PCA")
+        print("10  - 4.5–4.6 Seleção de features")
+        print("11 - 🔁 Executar tudo (3.1 a 4.6)")
+        print("0  - ❌ Sair")
 
-    print("\nDensidade de outliers (Aceleração, pulso direito):", densidade_accel)
-    print("\nDensidade de outliers (Giroscópio, pulso direito):", densidade_gyro)
-    print("\nDensidade de outliers (Magnetómetro, pulso direito):", densidade_mag)
+        opcao = input("\nEscolhe uma opção: ")
 
-    # 3.4 - Deteção e plot de outliers
-    print("\nA gerar plots de outliers...")
+        # === 3.1 ===
+        if opcao == "1":
+            for v in ['accel', 'gyro', 'mag']:
+                run_option(plot_boxplot_by_activity, data, vector_type=v)
 
-    plot_outliers_zscore(data, vector_type='accel', k_values=[3, 3.5, 4])
-    plot_outliers_zscore(data, vector_type='gyro', k_values=[3, 3.5, 4])
-    plot_outliers_zscore(data, vector_type='mag', k_values=[3, 3.5, 4])
+        # === 3.2 ===
+        elif opcao == "2":
+            for v in ['accel', 'gyro', 'mag']:
+                run_option(calcular_densidade_outliers, data, vector_type=v, k=3)
 
-    # 3.7 - Outliers K-means
-    print("\n=== 3.7 - K-means Outliers ===")
-    plot_outliers_kmeans_3d(data, vector_type='accel', n_clusters_list=[3, 5, 6])
-    plot_outliers_kmeans_3d(data, vector_type='gyro', n_clusters_list=[3, 5, 6])
-    plot_outliers_kmeans_3d(data, vector_type='mag', n_clusters_list=[3, 5, 6])
+        # === 3.4 ===
+        elif opcao == "3":
+            for v in ['accel', 'gyro', 'mag']:
+                run_option(plot_outliers_zscore, data, vector_type=v, k_values=[3, 3.5, 4])
 
-    # Comparar K-means vs Z-score
-    plot_outliers_zscore(data, vector_type='accel', k_values=[3])
-    plot_outliers_zscore(data, vector_type='gyro', k_values=[3])
-    plot_outliers_zscore(data, vector_type='mag', k_values=[3])
+        # === 3.6 ===
+        elif opcao == "4":
+            for v in ['accel', 'gyro', 'mag']:
+                print(f"\n⚙️  A executar K-means para {v}...")
+                data_3d = data[:, {'accel': 1, 'gyro': 4, 'mag': 7}[v]:{'accel': 1, 'gyro': 4, 'mag': 7}[v] + 3]
+                for n_clusters in [2, 3, 4, 5, 6, 7, 8]:
+                    _, centroids = k_means(data_3d, n_clusters, random_state=42)
+                    print(f" - K={n_clusters}: {len(centroids)} centróides calculados.")
+            print(" Execução do 3.6 concluída!")
 
-    # 4.1 - Teste de significância
-    print("\n=== 4.1 - Teste de significância estatística ===")
-    determinar_significancia_atividade(data, vector_type='accel')
-    determinar_significancia_atividade(data, vector_type='gyro')
-    determinar_significancia_atividade(data, vector_type='mag')
+        # === 3.7 ===
+        elif opcao == "5":
+            for v in ['accel', 'gyro', 'mag']:
+                run_option(plot_outliers_kmeans_3d, data, vector_type=v, n_clusters_list=[3, 5, 6])
 
-    # 4.2 - Extração de features
-    X_accel, y_accel = extract_feature_set(data, vector_type='accel')
-    X_gyro, y_gyro = extract_feature_set(data, vector_type='gyro')
-    X_mag, y_mag = extract_feature_set(data, vector_type='mag')
-    print(f"Features aceleração: {X_accel.shape}")
-    print(f"Features giroscópio: {X_gyro.shape}")
-    print(f"Features magnetómetro: {X_mag.shape}")
+        # === Comparar K-means vs Z-score ===
+        elif opcao == "6":
+            for v in ['accel', 'gyro', 'mag']:
+                run_option(comparar_kmeans_vs_zscore, data, vector_type=v, n_clusters=5, k=3)
 
-    plt.show()
+        # === 4.1 ===
+        elif opcao == "7":
+            for v in ['accel', 'gyro', 'mag']:
+                run_option(determinar_significancia_atividade, data, vector_type=v)
 
-    # 4.3 - Aplicar PCA a cada feature set
-    X_accel_pca, pca_accel = aplicar_pca(X_accel, n_components=0.95, vector_type='accel')
-    X_gyro_pca, pca_gyro = aplicar_pca(X_gyro, n_components=0.95, vector_type='gyro')
-    X_mag_pca, pca_mag = aplicar_pca(X_mag, n_components=0.95, vector_type='mag')
+        # === 4.2 ===
+        elif opcao == "8":
+            print("\n📦 A extrair features (pode demorar)...")
+            X_accel, y_accel = extract_feature_set(data, vector_type='accel')
+            X_gyro, y_gyro = extract_feature_set(data, vector_type='gyro')
+            X_mag, y_mag = extract_feature_set(data, vector_type='mag')
+            print(f"✅ Features aceleração: {X_accel.shape}")
+            print(f"✅ Features giroscópio: {X_gyro.shape}")
+            print(f"✅ Features magnetómetro: {X_mag.shape}")
 
-    # 4.5–4.6 - Seleção de features
-    print("\n=== 4.5–4.6 - Seleção de Features ===")
-    top_fisher, scores_fisher = selecionar_melhores_features(X_accel, y_accel, metodo='fisher', top_n=10)
-    top_relief, scores_relief = selecionar_melhores_features(X_accel, y_accel, metodo='relieff', top_n=10)
+        # === 4.3 ===
+        elif opcao == "9":
+            if X_accel is None:
+                print(" Executa primeiro a opção 7 (extração de features).")
+                continue
+            run_option(aplicar_pca, X_accel, n_components=0.95, vector_type='accel')
+            run_option(aplicar_pca, X_gyro, n_components=0.95, vector_type='gyro')
+            run_option(aplicar_pca, X_mag, n_components=0.95, vector_type='mag')
+
+        # === 4.5–4.6 ===
+        elif opcao == "10":
+            if X_accel is None:
+                print("️ Executa primeiro a opção 7 (extração de features).")
+                continue
+            run_option(selecionar_melhores_features, X_accel, y_accel, metodo='fisher', top_n=10)
+            run_option(selecionar_melhores_features, X_accel, y_accel, metodo='relieff', top_n=10)
+
+        # === Executar tudo ===
+        elif opcao == "11":
+            print("\n A executar todas as etapas (3.1 → 4.6)...")
+            etapas = [
+                (plot_boxplot_by_activity, dict(vector_type='accel')),
+                (plot_boxplot_by_activity, dict(vector_type='gyro')),
+                (plot_boxplot_by_activity, dict(vector_type='mag')),
+                (calcular_densidade_outliers, dict(vector_type='accel', k=3)),
+                (calcular_densidade_outliers, dict(vector_type='gyro', k=3)),
+                (calcular_densidade_outliers, dict(vector_type='mag', k=3)),
+                (plot_outliers_zscore, dict(vector_type='accel', k_values=[3, 3.5, 4])),
+                (plot_outliers_zscore, dict(vector_type='gyro', k_values=[3, 3.5, 4])),
+                (plot_outliers_zscore, dict(vector_type='mag', k_values=[3, 3.5, 4])),
+                (plot_outliers_kmeans_3d, dict(vector_type='accel', n_clusters_list=[3, 5, 6])),
+                (plot_outliers_kmeans_3d, dict(vector_type='gyro', n_clusters_list=[3, 5, 6])),
+                (plot_outliers_kmeans_3d, dict(vector_type='mag', n_clusters_list=[3, 5, 6])),
+                (determinar_significancia_atividade, dict(vector_type='accel')),
+                (determinar_significancia_atividade, dict(vector_type='gyro')),
+                (determinar_significancia_atividade, dict(vector_type='mag')),
+            ]
+            for func, kwargs in etapas:
+                run_option(func, data, **kwargs)
+
+            X_accel, y_accel = extract_feature_set(data, vector_type='accel')
+            X_gyro, y_gyro = extract_feature_set(data, vector_type='gyro')
+            X_mag, y_mag = extract_feature_set(data, vector_type='mag')
+
+            run_option(aplicar_pca, X_accel, n_components=0.95, vector_type='accel')
+            run_option(aplicar_pca, X_gyro, n_components=0.95, vector_type='gyro')
+            run_option(aplicar_pca, X_mag, n_components=0.95, vector_type='mag')
+
+            run_option(selecionar_melhores_features, X_accel, y_accel, metodo='fisher', top_n=10)
+            run_option(selecionar_melhores_features, X_accel, y_accel, metodo='relieff', top_n=10)
+            print(" Execução completa!")
+
+        elif opcao == "0":
+            print("\n A terminar o programa...")
+            break
+        else:
+            print(" Opção inválida. Tenta novamente.")
+
+if __name__ == "__main__":
+    main()
