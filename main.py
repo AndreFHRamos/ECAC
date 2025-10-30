@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 from scipy.stats import kstest, f_oneway, kruskal
 from scipy.signal import welch
 from sklearn.decomposition import PCA
+import gc
+
 #preparação dos dados
 def load_participant_data(participant_id,
                           data_folder=r'C:\Users\squar\PycharmProjects\ECACprodject1\FORTH_TRACE_DATASET-master'):
@@ -355,7 +357,7 @@ def detectar_outliers_kmeans(data_array, vector_type='accel', n_clusters=4):
     # Contar pontos em cada cluster
     unique_labels, counts = np.unique(labels, return_counts=True)
 
-    # Clusters com menos de 1% dos dados são outliers
+    # Clusters com menos de 3% dos dados são outliers
     threshold = len(data_3d) * 0.03
     outlier_clusters = unique_labels[counts < threshold]
 
@@ -486,7 +488,9 @@ def comparar_kmeans_vs_zscore(data_array, vector_type='accel', n_clusters=5, k=3
 
     return outlier_mask_kmeans, outlier_mask_zscore
 
+#---------------------------------------------
 # 4.1 - Testes de significância
+#---------------------------------------------
 def determinar_significancia_atividade(data_array, vector_type='accel'):
     if vector_type == 'accel':
         start_col = 1
@@ -534,7 +538,9 @@ def determinar_significancia_atividade(data_array, vector_type='accel'):
     print(f"{'=' * 80}\n")
     return {'vector': vector_type, 'teste': teste_usado, 'p_value': p_value, 'normal': normal}
 
+#------------------------------------
 # 4.2 - Features
+#------------------------------------
 def sliding_window_segments(data_array, window_size_sec=5, overlap=0.5, fs=50):
     window_size = int(window_size_sec * fs)
     step_size = int(window_size * (1 - overlap))
@@ -693,9 +699,8 @@ def selecionar_melhores_features(X, y, metodo='fisher', top_n=10):
 
     return top_idx, scores
 
-import matplotlib.pyplot as plt
-import gc
-from main import *
+
+
 
 def run_option(func, *args, **kwargs):
     """Executa cada tarefa de forma isolada, como na main original."""
@@ -774,7 +779,7 @@ def main():
 
         # === 4.2 ===
         elif opcao == "8":
-            print("\n📦 A extrair features (pode demorar)...")
+            print("\n A extrair features (pode demorar)...")
             X_accel, y_accel = extract_feature_set(data, vector_type='accel')
             X_gyro, y_gyro = extract_feature_set(data, vector_type='gyro')
             X_mag, y_mag = extract_feature_set(data, vector_type='mag')
