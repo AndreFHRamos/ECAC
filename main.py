@@ -799,7 +799,7 @@ def main():
         # === 4.5–4.6 ===
         elif opcao == "10":
             if X_accel is None:
-                print("️ Executa primeiro a opção 7 (extração de features).")
+                print("️ Executa primeiro a opção 8 (extração de features).")
                 continue
             run_option(selecionar_melhores_features, X_accel, y_accel, metodo='fisher', top_n=10)
             run_option(selecionar_melhores_features, X_accel, y_accel, metodo='relieff', top_n=10)
