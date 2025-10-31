@@ -5,9 +5,8 @@ import matplotlib.pyplot as plt
 from scipy.stats import kstest, f_oneway, kruskal
 from scipy.signal import welch
 from sklearn.decomposition import PCA
-import gc
 
-#preparação dos dados
+# Preparação dos dados
 def load_participant_data(participant_id,
                           data_folder=r'C:\Users\squar\PycharmProjects\ECACprodject1\FORTH_TRACE_DATASET-master'):
     participant_folder = os.path.join(data_folder, f'part{participant_id}')
@@ -87,48 +86,7 @@ def plot_boxplot_by_activity(data_array, vector_type='accel'):
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
     plt.show(block=False)
-"""
-def calcular_densidade_outliers(data_array, vector_type='accel', k=3):
-    # Definir coluna inicial baseada no tipo de vetor
-    if vector_type == 'accel':
-        start_col = 1
-    elif vector_type == 'gyro':
-        start_col = 4
-    elif vector_type == 'mag':
-        start_col = 7
-    else:
-        raise ValueError("vector_type deve ser 'accel', 'gyro' ou 'mag'")
 
-    # Escolher o dispositivo, neste caso o pulso direito
-    mask_device = data_array[:, 0] == 2
-    data_filtered = data_array[mask_device]
-
-    # Calcular o módulo do vetor
-    magnitude = calculate_vector_magnitude(data_filtered, start_col)
-
-    # Obter as atividades e ordenar as atividades únicas
-    activities = data_filtered[:, 11]
-    unique_activities = np.sort(np.unique(activities))
-
-    # Calcular as densidades
-    densidades = {}
-    for activity in unique_activities:
-        mask = activities == activity
-        dados_atividade = magnitude[mask]
-
-        outliers, _ = detectar_outliers_zscore(dados_atividade, k=k)
-        no = len(outliers)
-        nr = len(dados_atividade)
-
-        if nr > 0:
-            densidade = (no / nr) * 100
-        else:
-            densidade = 0
-
-        densidades[int(activity)] = densidade
-
-    return densidades
-"""
 #-----------------------------------------------------------------
 #exercicio 3.2
 #-----------------------------------------------------------------
@@ -203,45 +161,66 @@ def detectar_outliers_zscore(dados, k=3):
 #----------------------------------------------------------------
 #3.4
 #----------------------------------------------------------------
-def plot_outliers_zscore(data_array, vector_type='accel', k_values=[3, 3.5, 4]):
-    # Definir coluna inicial baseada no tipo de vetor
+def plot_outliers_zscore(data_array, vector_type='accel', k_values=[3]):
+    """
+    Calcula e plota outliers por atividade usando Z-score individual por atividade.
+    O eixo X representa as atividades.
+    """
+
+    # Definir coluna inicial e rótulos
     if vector_type == 'accel':
         start_col = 1
-        title = 'Módulo do Vetor Aceleração por Atividade'
-        ylabel = 'Magnitude Aceleração'
+        title_base = 'Aceleração'
+        ylabel = 'Magnitude da Aceleração'
     elif vector_type == 'gyro':
         start_col = 4
-        title = 'Módulo do Vetor Giroscópio por Atividade'
-        ylabel = 'Magnitude Giroscópio'
+        title_base = 'Giroscópio'
+        ylabel = 'Magnitude do Giroscópio'
     elif vector_type == 'mag':
         start_col = 7
-        title = 'Módulo do Vetor Magnetómetro por Atividade'
-        ylabel = 'Magnitude Magnetómetro'
+        title_base = 'Magnetómetro'
+        ylabel = 'Magnitude do Magnetómetro'
     else:
         raise ValueError("vector_type deve ser 'accel', 'gyro' ou 'mag'")
 
-    # Calcular o módulo do vetor
+    # Calcular magnitude do vetor
     magnitude = calculate_vector_magnitude(data_array, start_col)
+    activities = data_array[:, 11]
+    unique_activities = np.sort(np.unique(activities))
 
-    indices = np.arange(len(magnitude))
-
-    # Criar um gráfico por cada valor de k
+    # Criar um gráfico para cada valor de k
     for k in k_values:
-        # Deteção de outliers
-        _, outlier_indices = detectar_outliers_zscore(magnitude, k=k)
+        plt.figure(figsize=(12, 6))
 
-        # Criar máscara de pontos não outliers
-        mask_outliers = np.zeros(len(magnitude), dtype=bool)
-        mask_outliers[outlier_indices] = True
+        for idx, activity in enumerate(unique_activities):
+            mask = activities == activity
+            dados_atividade = magnitude[mask]
 
-        # Gráfico
-        plt.figure(figsize=(12, 5))
-        plt.scatter(indices[~mask_outliers], magnitude[~mask_outliers], color='blue', s=5, label='Normal')
-        plt.scatter(indices[mask_outliers], magnitude[mask_outliers], color='red', s=8, label='Outliers')
+            # Calcular Z-score por atividade
+            media = np.mean(dados_atividade)
+            desvio = np.std(dados_atividade)
+            if desvio == 0:
+                z_scores = np.zeros_like(dados_atividade)
+            else:
+                z_scores = (dados_atividade - media) / desvio
 
-        plt.title(f'{title} - Outliers (k={k})')
-        plt.xlabel('Amostras')
+            # Detectar outliers
+            mask_outliers = np.abs(z_scores) > k
+
+            # Adicionar leve jitter no eixo X para visualização
+            jitter = np.random.uniform(-0.15, 0.15, size=len(dados_atividade))
+            x_vals = np.full_like(dados_atividade, fill_value=activity, dtype=float) + jitter
+
+            # Plotar pontos normais e outliers
+            plt.scatter(x_vals[~mask_outliers], dados_atividade[~mask_outliers],
+                        color='blue', s=8, alpha=0.6, label='Normal' if idx == 0 else "")
+            plt.scatter(x_vals[mask_outliers], dados_atividade[mask_outliers],
+                        color='red', s=12, alpha=0.8, label='Outlier' if idx == 0 else "")
+
+        plt.title(f"{title_base} - Outliers Z-score por Atividade (k={k})")
+        plt.xlabel("Atividade")
         plt.ylabel(ylabel)
+        plt.xticks(unique_activities.astype(int))
         plt.legend()
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
@@ -488,9 +467,7 @@ def comparar_kmeans_vs_zscore(data_array, vector_type='accel', n_clusters=5, k=3
 
     return outlier_mask_kmeans, outlier_mask_zscore
 
-#---------------------------------------------
 # 4.1 - Testes de significância
-#---------------------------------------------
 def determinar_significancia_atividade(data_array, vector_type='accel'):
     if vector_type == 'accel':
         start_col = 1
@@ -538,9 +515,7 @@ def determinar_significancia_atividade(data_array, vector_type='accel'):
     print(f"{'=' * 80}\n")
     return {'vector': vector_type, 'teste': teste_usado, 'p_value': p_value, 'normal': normal}
 
-#------------------------------------
 # 4.2 - Features
-#------------------------------------
 def sliding_window_segments(data_array, window_size_sec=5, overlap=0.5, fs=50):
     window_size = int(window_size_sec * fs)
     step_size = int(window_size * (1 - overlap))
@@ -699,8 +674,8 @@ def selecionar_melhores_features(X, y, metodo='fisher', top_n=10):
 
     return top_idx, scores
 
-
-
+import matplotlib.pyplot as plt
+import gc
 
 def run_option(func, *args, **kwargs):
     """Executa cada tarefa de forma isolada, como na main original."""
@@ -779,7 +754,7 @@ def main():
 
         # === 4.2 ===
         elif opcao == "8":
-            print("\n A extrair features (pode demorar)...")
+            print("\n📦 A extrair features (pode demorar)...")
             X_accel, y_accel = extract_feature_set(data, vector_type='accel')
             X_gyro, y_gyro = extract_feature_set(data, vector_type='gyro')
             X_mag, y_mag = extract_feature_set(data, vector_type='mag')
@@ -790,7 +765,7 @@ def main():
         # === 4.3 ===
         elif opcao == "9":
             if X_accel is None:
-                print(" Executa primeiro a opção 7 (extração de features).")
+                print(" Executa primeiro a opção 8 (extração de features).")
                 continue
             run_option(aplicar_pca, X_accel, n_components=0.95, vector_type='accel')
             run_option(aplicar_pca, X_gyro, n_components=0.95, vector_type='gyro')
