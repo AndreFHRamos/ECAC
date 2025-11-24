@@ -747,7 +747,7 @@ def main():
 
         # === 4.2 ===
         elif opcao == "8":
-            print("\n📦 A extrair features (pode demorar)...")
+            print("\n A extrair features (pode demorar)...")
             X_accel, y_accel = extract_feature_set(data, vector_type='accel')
             X_gyro, y_gyro = extract_feature_set(data, vector_type='gyro')
             X_mag, y_mag = extract_feature_set(data, vector_type='mag')
