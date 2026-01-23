@@ -1,0 +1,25 @@
+# --- Python ---
+__pycache__/
+*.pyc
+
+# --- Jupyter Notebooks ---
+.ipynb_checkpoints/
+
+# --- Ambientes Virtuais (para não enviares milhares de ficheiros) ---
+.venv/
+venv/
+env/
+
+# --- IDEs (VS Code, Pycharm) ---
+.vscode/
+.idea/
+
+# --- Dados (IMPORTANTE: Não enviar o dataset pesado) ---
+FORTH_TRACE_DATASET-master/
+*.csv
+*.zip
+*.rar
+
+# --- Sistema Operativo ---
+.DS_Store
+Thumbs.db
